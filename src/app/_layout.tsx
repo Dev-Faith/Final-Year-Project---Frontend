@@ -1,15 +1,38 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import { Provider } from "react-redux";
+import { store } from "../store/store";
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() { 
+
+  const [fontsLoaded, fontError] = useFonts({
+    "artkinson-bold": require("@/assets/fonts/AtkinsonHyperlegible-Bold.ttf"),
+    "artkinson-regular": require("@/assets/fonts/AtkinsonHyperlegible-Regular.ttf"),
+  })
+
+  useEffect(() => { 
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [
+    fontsLoaded, fontError
+  ])
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <Provider store={store}>
+      <Stack>
+        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+      </Stack>
+    </Provider>
   );
 }
+
