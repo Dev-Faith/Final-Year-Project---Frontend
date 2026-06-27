@@ -8,9 +8,11 @@
     "scheme": "wakatech",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.muyiwa.wakatech"
     },
     "android": {
+      "package": "com.muyiwa.wakatech",
       "adaptiveIcon": {
         "backgroundColor": "#F8FAFC",
         "foregroundImage": "./assets/images/logo.png",
@@ -28,7 +30,17 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/images/logo.png",
+          "imageWidth": 200,
           "backgroundColor": "#F8FAFC"
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": ["peripheral", "central"],
+          "bluetoothAlwaysPermission": "Allow Wakatech to connect to the walking stick."
         }
       ]
     ],
