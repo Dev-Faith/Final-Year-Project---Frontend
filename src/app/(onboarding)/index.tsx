@@ -1,14 +1,14 @@
 import { CustomButton } from "@/components/ui/CustomButton";
 import CustomText from "@/components/ui/CustomText";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
-import {useRouter} from "expo-router";
 
 export default function WelcomeScreen() {
-    const router = useRouter();
-    const handleCreateAccount = () => { 
-        router.push("/discovery");
-    }
+  const router = useRouter();
+  const handleCreateAccount = () => {
+    router.push("/discovery");
+  };
   return (
     <View style={styles.container}>
       <Image
@@ -29,7 +29,11 @@ export default function WelcomeScreen() {
           title="Create Caregiver Account"
           onPress={handleCreateAccount}
         />
-        <CustomButton title="Login" variant="text" />
+        <CustomButton
+          title="Login"
+          variant="text"
+          onPress={() => router.push("/(dashboard)/index")}
+        />
       </View>
     </View>
   );
@@ -49,8 +53,8 @@ const styles = StyleSheet.create({
     marginTop: 45,
   },
   btnContainer: {
-      width: "100%",
-      marginTop: 64
+    width: "100%",
+    marginTop: 64,
   },
   h2: {
     fontSize: 24,
@@ -58,8 +62,8 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 18,
     color: "#475569",
-    },
-    image: {
-      marginLeft: -24,
-  }
+  },
+  image: {
+    marginLeft: -24,
+  },
 });

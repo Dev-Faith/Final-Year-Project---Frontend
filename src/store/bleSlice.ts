@@ -9,11 +9,15 @@ export interface BleDevice {
 interface BleState {
   isScanning: boolean;
   discoveredDevices: BleDevice[];
+  connectedDevice: BleDevice | null;
+  connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
 }
 
 const initialState: BleState = {
   isScanning: false,
   discoveredDevices: [],
+  connectedDevice: null,
+  connectionStatus: 'disconnected',
 };
 
 const bleSlice = createSlice({
@@ -34,8 +38,14 @@ const bleSlice = createSlice({
         state.discoveredDevices.push(action.payload);
       }
     },
+    setConnectionStatus: (state, action: PayloadAction<'disconnected' | 'connecting' | 'connected' | 'error'>) => {
+      state.connectionStatus = action.payload;
+    },
+    setConnectedDevice: (state, action: PayloadAction<BleDevice | null>) => {
+      state.connectedDevice = action.payload;
+    },
   },
 });
 
-export const { startScan, stopScan, addDevice } = bleSlice.actions;
+export const { startScan, stopScan, addDevice, setConnectionStatus, setConnectedDevice } = bleSlice.actions;
 export default bleSlice.reducer;

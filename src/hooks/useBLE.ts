@@ -1,12 +1,26 @@
-import { useMemo } from "react";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
 import { BleManager } from "react-native-ble-plx";
 import { useDispatch } from "react-redux";
-import { addDevice, startScan, stopScan } from "../store/bleSlice";
+import {
+  addDevice,
+  BleDevice,
+  setConnectedDevice,
+  setConnectionStatus,
+  startScan,
+  stopScan,
+} from "../store/bleSlice";
+import {encode} from "base-64";
+
+const bleManager = new BleManager();
+
+// const WALKING_STICK_SERVICE_UUID = ["00001234-0000-1000-8000-00805f9b34fb"];
+const WALKING_STICK_SERVICE_UUID = ["1234"];
+
+// NEW: The exact Mailbox (Characteristic) on the stick that listens for Wi-Fi data
+// (You must define this in your Raspberry Pi / ESP32 code as well!)
+const WIFI_CHARACTERISTIC_UUID = "00005678-0000-1000-8000-00805f9b34fb";
 
 export function useBLE() {
-  // 1. Initialize the BleManager EXACTLY once
-  const bleManager = useMemo(() => new BleManager(), []);
   const dispatch = useDispatch();
 
   const requestBluetoothPermissions = async () => {
@@ -17,7 +31,6 @@ export function useBLE() {
     if (Platform.OS === "android") {
       const apiLevel = parseInt(Platform.Version.toString(), 10);
 
-      // For Android 11 and older
       if (apiLevel < 31) {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
@@ -25,7 +38,6 @@ export function useBLE() {
         return granted === PermissionsAndroid.RESULTS.GRANTED;
       }
 
-      // For Android 12 and newer
       if (apiLevel >= 31) {
         const result = await PermissionsAndroid.requestMultiple([
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
@@ -46,8 +58,28 @@ export function useBLE() {
     return false;
   };
 
+  const checkConnectedDevices = async () => {
+    try {
+      const activeConnections = await bleManager.connectedDevices(
+        WALKING_STICK_SERVICE_UUID,
+      );
+
+      if (activeConnections.length > 0) {
+        console.log("Found active connections:", activeConnections);
+        dispatch(setConnectedDevice(activeConnections[0]));
+        dispatch(setConnectionStatus("connected"));
+        return activeConnections;
+      } else {
+        console.log("No walking sticks are currently connected.");
+        return [];
+      }
+    } catch (error) {
+      console.log("Error checking connected devices:", error);
+      return [];
+    }
+  };
+
   const scanForDevices = async () => {
-    // 1. Ask for permissions FIRST
     const isGranted = await requestBluetoothPermissions();
 
     if (!isGranted) {
@@ -56,7 +88,7 @@ export function useBLE() {
         "Wakatech needs Bluetooth permissions to find the walking stick.",
         [{ text: "OK" }],
       );
-      return; // Stop the function if they hit "Deny"
+      return;
     }
 
     const btState = await bleManager.state();
@@ -67,34 +99,89 @@ export function useBLE() {
         "Please turn on your phone's Bluetooth to connect to the walking stick.",
         [{ text: "OK" }],
       );
-      return; // Stop the function so it doesn't crash
+      return;
     }
 
     bleManager.stopDeviceScan();
-
     dispatch(startScan());
 
-    // 2. Start scanning!
-    // The first argument is the Service UUIDs. 'null' means scan for EVERYTHING nearby.
-    bleManager.startDeviceScan(null, null, (error, device) => {
-      if (error) {
-        console.error("Bluetooth Scan Error:", error);
-        dispatch(stopScan());
-        return;
-      }
+    bleManager.startDeviceScan(
+      WALKING_STICK_SERVICE_UUID,
+      null,
+      (error, device) => {
+        if (error) {
+          console.log("Bluetooth Scan Error:", error);
+          dispatch(stopScan());
+          return;
+        }
 
-      // 3. If we find a device, and it actually has a name, send it to Redux!
-      if (device && device.name) {
-        dispatch(addDevice({ id: device.id, name: device.name }));
-      }
-    });
+        if (device && device.name) {
+          dispatch(addDevice({ id: device.id, name: device.name }));
+        }
+      },
+    );
 
-    // 4. Automatically stop scanning after 10 seconds to save battery
     setTimeout(() => {
       bleManager.stopDeviceScan();
       dispatch(stopScan());
     }, 10000);
   };
 
-  return { scanForDevices };
+  const connectToDevice = async (device: BleDevice) => {
+    try {
+      dispatch(setConnectionStatus("connecting"));
+
+      bleManager.stopDeviceScan();
+      dispatch(stopScan());
+
+      console.log(`Connecting to ${device.name}...`);
+      const connectedDevice = await bleManager.connectToDevice(device.id, {
+        timeout: 5000,
+      });
+
+      await connectedDevice.discoverAllServicesAndCharacteristics();
+
+      dispatch(setConnectedDevice(device));
+      dispatch(setConnectionStatus("connected"));
+      console.log("Successfully connected and ready to send data!");
+    } catch (error) {
+      console.log("Failed to connect:", error);
+      dispatch(setConnectionStatus("error"));
+      Alert.alert(
+        "Connection Failed",
+        "Could not connect to the walking stick. Please ensure it is turned on and try again.",
+      );
+    }
+  };
+
+
+  const sendWiFiCredentials = async (deviceId: string, ssid: string, pass: string) => {
+    try {
+      // 1. Package the data into a standard JSON string
+      const wifiData = JSON.stringify({ ssid: ssid, pass: pass });
+      
+      // 2. Translate the text into Base64 for the Bluetooth antenna
+      const base64Data = encode(wifiData);
+
+      console.log(`Sending credentials to device: ${deviceId}...`);
+
+      // 3. Fire the packet over the airwaves!
+      await bleManager.writeCharacteristicWithResponseForDevice(
+        deviceId,
+        WALKING_STICK_SERVICE_UUID[0], // The "Building"
+        WIFI_CHARACTERISTIC_UUID,      // The "Mailbox"
+        base64Data                     // The "Letter"
+      );
+
+      console.log("Transmission Successful!");
+      return true;
+
+    } catch (error) {
+      console.log("Transmission failed:", error);
+      Alert.alert("Transmission Failed", "Could not send wifi credentials to the stick. Please stay close and try again.");
+      return false;
+    }
+  };
+
+  return { scanForDevices, connectToDevice, checkConnectedDevices, sendWiFiCredentials };
 }

@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { Provider } from "react-redux";
 import { store } from "../store/store";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 
 SplashScreen.preventAutoHideAsync();
@@ -29,9 +30,11 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
-      <Stack>
-        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-      </Stack>
+      <KeyboardProvider>
+        <Stack>
+          <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+        </Stack>
+      </KeyboardProvider>
     </Provider>
   );
 }

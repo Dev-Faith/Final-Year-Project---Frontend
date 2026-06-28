@@ -7,6 +7,8 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         <Stack>
            <Stack.Screen name="index" options={{ headerShown: false }} />
            <Stack.Screen name="discovery" options={{ headerShown: false }} />
+           <Stack.Screen name="networkSetup" options={{ headerShown: false }} />
+           <Stack.Screen name="emergencyContacts" options={{ headerShown: false }} />
         </Stack>
     )
 }

@@ -1,6 +1,7 @@
 import { CustomButton } from "@/components/ui/CustomButton";
 import CustomText from "@/components/ui/CustomText";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, View } from "react-native";
 import { useSelector } from "react-redux";
@@ -13,11 +14,18 @@ interface Device {
 }
 
 export default function DiscoveryScreen() {
-  const { scanForDevices } = useBLE();
+  const router = useRouter();
+
+  const { scanForDevices, connectToDevice, checkConnectedDevices } = useBLE();
   const isScanning = useSelector((state: RootState) => state.ble.isScanning);
+
   const devices = useSelector(
     (state: RootState) => state.ble.discoveredDevices,
   );
+  const connectionStatus = useSelector(
+    (state: RootState) => state.ble.connectionStatus,
+  );
+
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -26,9 +34,40 @@ export default function DiscoveryScreen() {
     setSelectedDevice(device);
   };
 
+  const handlePairDevice = async () => {
+    if (!isScanning && devices.length === 0) {
+      scanForDevices();
+    } else if (!isScanning && devices.length > 0) {
+      console.log("Proceed to pair the selected device!");
+    }
+
+    if (selectedDevice) {
+      await connectToDevice(selectedDevice);
+    }
+  };
+
+  useEffect(() => {
+    if (connectionStatus === "connected") {
+      console.log("Navigating to networkSetup...");
+      return router.replace("/networkSetup");
+    }
+  }, [connectionStatus]);
+
   useEffect(() => {
     scanForDevices();
-    setMounted(true);
+    setTimeout(() => !isScanning && setMounted(true), 3000);
+
+    const initBLE = async () => {
+      // 1. First, check if the stick is already connected in the background
+      const activeDevices = await checkConnectedDevices();
+
+      // 2. If nothing is connected, THEN turn on the scanner to find one
+      if (activeDevices.length === 0) {
+        scanForDevices();
+      }
+    };
+
+    initBLE();
   }, []);
 
   return (
@@ -63,7 +102,7 @@ export default function DiscoveryScreen() {
             {/* THE REFRESH BUTTON */}
             <Pressable
               onPress={scanForDevices}
-              disabled={isScanning} // Prevent spam-clicking while already scanning
+              disabled={isScanning}
               style={({ pressed }) => [
                 styles.refreshButton,
                 pressed && styles.refreshButtonPressed,
@@ -72,7 +111,6 @@ export default function DiscoveryScreen() {
               <Ionicons
                 name="refresh"
                 size={26}
-                // Turns gray when scanning, blue when ready!
                 color={isScanning ? "#CBD5E1" : "#3B82F6"}
               />
             </Pressable>
@@ -101,7 +139,12 @@ export default function DiscoveryScreen() {
 
                 <View style={styles.connectBadge}>
                   <CustomText style={styles.connectBadgeText} bold>
-                    Select
+                    {connectionStatus === "connecting" &&
+                    selectedDevice?.id === item.id
+                      ? "Linking..."
+                      : selectedDevice?.id === item.id
+                        ? "Selected"
+                        : "Select"}
                   </CustomText>
                 </View>
               </Pressable>
@@ -125,21 +168,17 @@ export default function DiscoveryScreen() {
             ? "Scanning..."
             : devices.length > 0
               ? selectedDevice
-                ? "Pair Device"
+                ? connectionStatus === "connecting"
+                  ? "Linking..."
+                  : "Pair Device"
                 : "Select Device"
               : "Search Again"
         }
         variant={isScanning || !selectedDevice ? "secondary" : "primary"}
         style={{ marginTop: 24, width: "100%" }}
-        disabled={isScanning}
+        disabled={isScanning || connectionStatus === "connecting"}
         // Added the logic to rescan if nothing was found!
-        onPress={() => {
-          if (!isScanning && devices.length === 0) {
-            scanForDevices();
-          } else if (!isScanning && devices.length > 0) {
-            console.log("Proceed to pair the selected device!");
-          }
-        }}
+        onPress={handlePairDevice}
       />
     </View>
   );
@@ -157,8 +196,8 @@ const styles = StyleSheet.create({
   refreshBtnContainer: {
     alignItems: "flex-end",
     width: "100%",
-    marginBottom: 16,
-  }, 
+    marginBottom: 16, // Matches the main background
+  },
   h2: {
     fontSize: 24,
   },
@@ -189,7 +228,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   listContent: {
-    gap: 16, // Space between cards
+    gap: 16,
     paddingBottom: 20,
   },
   deviceCard: {
@@ -208,12 +247,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   deviceCardPressed: {
-    backgroundColor: "#F1F5F9", // Slightly darker on press
-    transform: [{ scale: 0.98 }], // Native shrink effect
+    backgroundColor: "#F1F5F9",
+    transform: [{ scale: 0.98 }],
   },
   deviceCardSelected: {
-    backgroundColor: "#E0F2FE", // Light blue for selected state
-    borderColor: "#3B82F6", // Blue border for emphasis
+    backgroundColor: "#E0F2FE",
+    borderColor: "#3B82F6",
   },
 
   deviceName: {
@@ -242,12 +281,14 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   refreshButton: {
+    display: "flex",
     width: 40,
     height: 40,
-    justifyContent: "center",
     alignItems: "center",
-    padding: 8,
+    justifyContent: "center",
     borderRadius: 50,
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
     backgroundColor: "#EFF6FF",
   },
   refreshButtonPressed: {
