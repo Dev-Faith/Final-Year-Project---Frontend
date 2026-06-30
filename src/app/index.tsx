@@ -32,7 +32,7 @@ export default function WelcomeScreen() {
         <CustomButton
           title="Login"
           variant="text"
-          onPress={() => router.push("/(dashboard)/index")}
+          onPress={() => router.push("/(dashboard)")}
         />
       </View>
     </View>

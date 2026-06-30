@@ -39,12 +39,12 @@ export default function EmergencyContactsScreen() {
     console.log("Form submitted:", data);
 
     Alert.alert(
-      "Emergenct Contact Saved",
+      "Emergency Contact Saved",
       "Your emergency contact has been saved successfully.",
       [
         {
           text: "Finish Setup",
-          onPress: () => router.replace("/(dashboard)/index"),
+          onPress: () => router.replace("/(dashboard)"),
         },
       ],
     );
