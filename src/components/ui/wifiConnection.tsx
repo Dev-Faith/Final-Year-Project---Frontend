@@ -16,6 +16,7 @@ export const WifiConnection = ({ isConnected }: { isConnected: boolean }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",

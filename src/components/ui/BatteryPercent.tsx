@@ -24,6 +24,7 @@ export const BatteryPercent = ({ percent }: { percent: number }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     height: 102,
     borderRadius: 20,
     borderWidth: 1,

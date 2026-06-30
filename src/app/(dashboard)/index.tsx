@@ -1,9 +1,12 @@
 import { BatteryPercent } from "@/components/ui/BatteryPercent";
+import CustomText from "@/components/ui/CustomText";
 import DailyStepsChart from "@/components/ui/dailyStepsChart";
 import { NotificationBtn } from "@/components/ui/notificationBtn";
+import { RecentActivities } from "@/components/ui/recentActivity";
 import { SystemActivity } from "@/components/ui/systemActivity";
 import { WifiConnection } from "@/components/ui/wifiConnection";
-import { StyleSheet, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function index() {
@@ -20,7 +23,16 @@ export default function index() {
         <BatteryPercent percent={75} />
         <WifiConnection isConnected={true} />
       </View>
-      <DailyStepsChart style={{ marginTop: 32 }} />
+      <DailyStepsChart style={{ marginTop: 16 }} />
+      <View style={styles.locateBtnContainer}>
+        <Pressable style={styles.locateBtn}>
+          <Ionicons name="location-outline" size={24} color="#2563EB" />
+          <CustomText style={{ color: "#2563EB", fontSize: 18 }}>
+            Locate on Map
+          </CustomText>
+        </Pressable>
+      </View>
+      <RecentActivities />
     </SafeAreaView>
   );
 }
@@ -30,6 +42,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8fafc",
     padding: 24,
+    overflow: "hidden",
   },
   notificationContainer: {
     width: "100%",
@@ -41,5 +54,18 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     gap: 16,
+    // backgroundColor: "red"
+  },
+  locateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 20, 
+  },
+  locateBtnContainer: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    marginVertical: 16,
   },
 });

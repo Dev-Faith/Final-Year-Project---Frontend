@@ -1,10 +1,11 @@
-import React from "react";
-import { View, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import CustomText from "./CustomText";
 
 export default function DailyStepsChart({ style }: { style?: object }) {
+  const [chartWidth, setChartWidth] = useState(0);
   // Gifted Charts expects data in this specific format
   const chartData = [
     { value: 65, label: "Mon" },
@@ -30,25 +31,32 @@ export default function DailyStepsChart({ style }: { style?: object }) {
       </View>
 
       {/* --- CHART AREA --- */}
-      <View style={styles.chartContainer}>
-        <LineChart
-          data={chartData}
-          height={100}
-          width={280} // Adjust based on your typical screen width, or use Dimensions.get('window').width
-          // Styling the line
-          color="#3B82F6"
-          thickness={2}
-          // Hiding the extra chart elements to achieve your minimalist look
-          hideDataPoints={true}
-          hideRules={true}
-          hideYAxisText={true}
-          hideAxesAndRules={true}
-          // Styling the X-axis labels
-          xAxisLabelTextStyle={styles.labelText}
-          // Adding a smooth curve to the line (optional, but looks great!)
-          isAnimated={true}
-          animationDuration={1200}
-        />
+      <View
+        style={styles.chartContainer}
+        onLayout={(e) => setChartWidth(e.nativeEvent.layout.width-20)}
+      >
+        {/* 4. Only render the chart once we have a width greater than 0 */}
+        {chartWidth > 0 && (
+          <LineChart
+            data={chartData}
+            height={100}
+            width={chartWidth}
+            // --- THE MAGIC MATH ---
+            // Divide the available width by the number of gaps between data points.
+            // (We subtract a little buffer so the text labels don't get clipped on the edges)
+            initialSpacing={10}
+            spacing={(chartWidth - 20) / (chartData.length - 1)}
+            color="#3B82F6"
+            thickness={2}
+            hideDataPoints={true}
+            hideRules={true}
+            hideYAxisText={true}
+            hideAxesAndRules={true}
+            xAxisLabelTextStyle={styles.labelText}
+            isAnimated={true}
+            animationDuration={1200}
+          />
+        )}
       </View>
     </View>
   );
@@ -87,8 +95,10 @@ const styles = StyleSheet.create({
     color: "#0F172A",
   },
   chartContainer: {
+    width: "100%",
+    // backgroundColor: "red",
     alignItems: "center", // Centers the chart inside the card
-    marginLeft: -20, // Offsets the default left padding from the library
+    // marginLeft: -20, // Offsets the default left padding from the library
   },
   labelText: {
     fontSize: 14,
